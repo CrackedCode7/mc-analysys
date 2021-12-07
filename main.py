@@ -37,11 +37,13 @@ with open('r.-1.2.mca', 'rb') as f:
     f.read(4096*1779)
 
     rem_length = struct.unpack('>i', f.read(4))
-    print(rem_length)
+    print(rem_length, 'is the remaining number of bytes in the chunk')
 
     compression_scheme = int.from_bytes(f.read(1), 'big')
-    print(compression_scheme)
+    print(compression_scheme, 'is the compression scheme')
 
     compressed_data = f.read(rem_length[0]-1)
     decompressed_data = zlib.decompress(compressed_data)
-    print(decompressed_data[:16])
+
+    type_id = decompressed_data[0]
+    print(type_id, 'is the type id of the first tag (TAG_Compound)')
