@@ -18,6 +18,7 @@ def get_offset(chunk_x: int, chunk_z: int):
     return 4*((chunk_x%32)+(chunk_z%32)*32)
 
 def read_chunk_data(chunk_x: int, chunk_z: int, data: bytes):
+
     offset = get_offset(chunk_x, chunk_z)
     chunk_offset = int.from_bytes(data[offset:offset+3], 'big')*4096 # offset for chunk data in bytes
     chunk_length = int.from_bytes(data[offset+3:offset+4], 'big')*4096 # chunk length in bytes
@@ -38,46 +39,78 @@ def read_chunk_data(chunk_x: int, chunk_z: int, data: bytes):
 
 
 class TAG_End:
-    pass
+    id = 0
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
     
 
 class TAG_Byte:
-    pass
+    id = 1
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Short:
-    pass
+    id = 2
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Int:
-    pass
+    id = 3
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Long:
-    pass
+    id = 4
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Float:
-    pass
+    id = 5
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Double:
-    pass
+    id = 6
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Byte_Array:
-    pass
+    id = 7
+
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_String:
-    pass
+    id = 8
+
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_List:
-    pass
+    id = 9
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Compound:
+
+    id = 10
     
     def __init__(self, chunk_data):
     
@@ -111,17 +144,30 @@ class TAG_Compound:
             else:
                 name = ''
                 break
-            
-            self.dict[name] = None
+
+            for tag in TAGS.ALL:
+                if tag.id == type_id:
+                    self.dict[name] = tag(self.buffer)
 
 
 class TAG_Int_Array:
-    pass
+    id = 11
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
 
 class TAG_Long_Array:
-    pass
+    id = 12
+    
+    def __init__(self, buffer):
+        self.buffer = buffer
 
+
+class TAGS:
+    ALL = [TAG_End, TAG_Byte, TAG_Short, TAG_Int, TAG_Long, TAG_Float, 
+           TAG_Double, TAG_Byte_Array, TAG_String, TAG_List, TAG_Compound, 
+           TAG_Int_Array, TAG_Long_Array]
 
 with open('r.-1.2.mca', 'rb') as f:
 
