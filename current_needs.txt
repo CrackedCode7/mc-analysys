@@ -1,5 +1,3 @@
-Need to implement a way to track how many bytes were used by a tag, and then use that to remove or index for the next tag. Right now
-the bytes from the compound tag are passed to the first next tag, but we should somehow update the number of bytes used and remove
-each iteration.
-
 Need to implement what to do with bytes passed to each tag type.
+
+ISSUE WITH TAG COMPOUNDS THAT ARE NESTED. THEY ARE NOT GETTING THE INFORMATION THAT FOLLOWS, BEFORE AN END TAG REACHED...
