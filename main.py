@@ -40,11 +40,11 @@ def read_chunk_data(chunk_x: int, chunk_z: int, data: bytes):
 
 class TAG_End:
     id = 0
-    base_payload = 1
+    base_payload = 0
     
     def __init__(self, buffer):
         self.buffer = buffer
-        self.payload_size = 1
+        self.payload_size = 0
     
 
 class TAG_Byte:
@@ -149,6 +149,7 @@ class TAG_Compound:
     def __init__(self, chunk_data):
     
         self.dict = {}
+        self.list = []
         self.buffer_index = 0
 
         self.payload_size = self.buffer_index
@@ -166,15 +167,18 @@ class TAG_Compound:
         self.construct_dict()
     
     def construct_dict(self):
-        while True:
+    
+        type_id = 10 # Initialize to compound tag, this can be anything but 0
+        string_length = 0
+        while type_id != 0:
             
             type_id = int.from_bytes(self.buffer[self.buffer_index:self.buffer_index+1], 'big')
             self.buffer_index += 1
             if type_id != 0:
                 string_length = int.from_bytes(self.buffer[self.buffer_index:self.buffer_index+2], 'big')
                 self.buffer_index += 2
-            else:
-                break
+            #else:
+                #break
 
             if string_length != 0:
                 name = self.buffer[self.buffer_index:self.buffer_index+string_length].decode('utf-8')
@@ -185,6 +189,7 @@ class TAG_Compound:
             for tag in TAGS.ALL:
                 if tag.id == type_id:
                     self.dict[name] = tag(self.buffer[self.buffer_index:])
+                    self.list.append([name, tag(self.buffer[self.buffer_index:])])
                     try:
                         self.buffer_index += self.dict[name].payload_size # NEED TO UPDATE THIS TO BE THE SIZE USED BY THE TAG
                     except:
@@ -214,10 +219,14 @@ class TAGS:
            TAG_Double, TAG_Byte_Array, TAG_String, TAG_List, TAG_Compound, 
            TAG_Int_Array, TAG_Long_Array]
 
-with open('r.0.0.mca', 'rb') as f:
 
-    data = f.read()
-    chunk_data = read_chunk_data(0, 0, data)
-    
-    cmpd = TAG_Compound(chunk_data)
-    print(cmpd.dict['Level'].dict)
+if __name__ == '__main__':
+
+    with open('r.0.0.mca', 'rb') as f:
+
+        data = f.read()
+        chunk_data = read_chunk_data(0, 0, data)
+        
+        cmpd = TAG_Compound(chunk_data)
+        print(cmpd.dict['zPos'].data)
+        print(cmpd.list)
