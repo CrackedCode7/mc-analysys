@@ -33,7 +33,7 @@ with open('r.0.0.mca', 'rb') as f:
         buffer = buffer[name_length:]
         
         if tag_id == 10:
-        # Read tags until tag 0 reached.
+            # Read tags until tag 0 reached.
             print(buffer[0])
         
         break

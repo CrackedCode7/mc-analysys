@@ -2,6 +2,7 @@ import struct
 import math
 import time
 import zlib
+import pprint
 
 # First 8192 bytes are the header of the mca file.
 # After this, the first 4 bytes are a Big-Endian length field which is the REMAINING length of the chunk data.
@@ -45,6 +46,7 @@ class TAG_End:
     def __init__(self, buffer):
         self.buffer = buffer
         self.payload_size = 0
+        self.data = None
     
 
 class TAG_Byte:
@@ -54,6 +56,7 @@ class TAG_Byte:
     def __init__(self, buffer):
         self.buffer = buffer
         self.payload_size = 1
+        self.data = buffer[0]
 
 
 class TAG_Short:
@@ -63,6 +66,7 @@ class TAG_Short:
     def __init__(self, buffer):
         self.buffer = buffer
         self.payload_size = 2
+        self.data = int.from_bytes(buffer[0:2], 'big')
 
 
 class TAG_Int:
@@ -73,7 +77,7 @@ class TAG_Int:
         self.buffer = buffer
         self.payload_size = 4
         
-        self.data = int.from_bytes(self.buffer[:4], 'big')
+        self.data = int.from_bytes(self.buffer[0:4], 'big')
 
 
 class TAG_Long:
@@ -83,6 +87,7 @@ class TAG_Long:
     def __init__(self, buffer):
         self.buffer = buffer
         self.payload_size = 8
+        self.data = struct.unpack('>q', self.buffer[0:8])
 
 
 class TAG_Float:
@@ -92,6 +97,7 @@ class TAG_Float:
     def __init__(self, buffer):
         self.buffer = buffer
         self.payload_size = 4
+        self.data = struct.unpack('>f', self.buffer[0:4])
 
 
 class TAG_Double:
@@ -154,15 +160,15 @@ class TAG_Compound:
 
         self.payload_size = self.buffer_index
         
-        self.type_id = int.from_bytes(chunk_data[0:1], 'big')
+        #self.type_id = chunk_data[0]
 
-        string_length = int.from_bytes(chunk_data[1:3], 'big')
+        '''string_length = int.from_bytes(chunk_data[1:3], 'big')
         if string_length != 0:
             self.name = chunk_data[3:3+string_length].decode('utf-8')
         else:
-            self.name = ''
+            self.name = '''
         
-        self.buffer = chunk_data[3+string_length:]
+        self.buffer = chunk_data
         
         self.construct_dict()
     
@@ -188,8 +194,9 @@ class TAG_Compound:
 
             for tag in TAGS.ALL:
                 if tag.id == type_id:
+                    print('here', name, type_id)
                     self.dict[name] = tag(self.buffer[self.buffer_index:])
-                    self.list.append([name, tag(self.buffer[self.buffer_index:])])
+                    #self.list.append([name, tag(self.buffer[self.buffer_index:])])
                     try:
                         self.buffer_index += self.dict[name].payload_size # NEED TO UPDATE THIS TO BE THE SIZE USED BY THE TAG
                     except:
@@ -228,5 +235,5 @@ if __name__ == '__main__':
         chunk_data = read_chunk_data(0, 0, data)
         
         cmpd = TAG_Compound(chunk_data)
-        print(cmpd.dict['zPos'].data)
-        print(cmpd.list)
+        #pprint.pprint(cmpd.dict['Heightmaps'].dict['OCEAN_FLOOR'])
+        print(chunk_data)
