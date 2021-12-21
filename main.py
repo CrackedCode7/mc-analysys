@@ -41,183 +41,164 @@ def read_chunk_data(chunk_x: int, chunk_z: int, data: bytes):
 
 class TAG_End:
     id = 0
-    base_payload = 0
     
     def __init__(self, buffer):
-        self.buffer = buffer
-        self.payload_size = 0
         self.data = None
+        self.payload_size = 0
     
 
 class TAG_Byte:
     id = 1
-    base_payload = 1
     
     def __init__(self, buffer):
-        self.buffer = buffer
-        self.payload_size = 1
         self.data = buffer[0]
+        self.payload_size = 1
 
 
 class TAG_Short:
     id = 2
-    base_payload = 2
     
     def __init__(self, buffer):
-        self.buffer = buffer
-        self.payload_size = 2
         self.data = int.from_bytes(buffer[0:2], 'big')
+        self.payload_size = 2
 
 
 class TAG_Int:
     id = 3
-    base_payload = 4
     
     def __init__(self, buffer):
-        self.buffer = buffer
+        self.data = int.from_bytes(buffer[0:4], 'big')
         self.payload_size = 4
-        
-        self.data = int.from_bytes(self.buffer[0:4], 'big')
 
 
 class TAG_Long:
     id = 4
-    base_payload = 8
     
     def __init__(self, buffer):
-        self.buffer = buffer
+        self.data = struct.unpack('>q', buffer[0:8])
         self.payload_size = 8
-        self.data = struct.unpack('>q', self.buffer[0:8])
 
 
 class TAG_Float:
     id = 5
-    base_payload = 4
     
     def __init__(self, buffer):
-        self.buffer = buffer
+        self.data = struct.unpack('>f', buffer[0:4])
         self.payload_size = 4
-        self.data = struct.unpack('>f', self.buffer[0:4])
 
 
 class TAG_Double:
     id = 6
-    base_payload = 8
     
     def __init__(self, buffer):
-        self.buffer = buffer
+        self.data = struct.unpack('>d', buffer[0:8])
         self.payload_size = 8
 
 
 class TAG_Byte_Array:
     id = 7
 
-    def __init__(self, buffer):
-        self.buffer = buffer
+    def __init__(self, buffer):   
         self.size = int.from_bytes(buffer[:4], 'big')
         self.payload_size = 4 + self.size
 
-        self.payload = buffer[4:4+self.size] # THIS NEEDS TO BE CHECKED
+        self.data = buffer[4:4+self.size] # THIS NEEDS TO BE CHECKED
 
 
 class TAG_String:
     id = 8
 
     def __init__(self, buffer):
-        self.buffer = buffer
         self.size = int.from_bytes(buffer[:2], 'big')
-
         self.payload_size = 2 + self.size
-
-        self.data = self.buffer[2:2+self.size].decode('utf-8')
+        
+        self.data = buffer[2:2+self.size].decode('utf-8')
 
 
 class TAG_List:
     id = 9
     
     def __init__(self, buffer):
-        self.buffer = buffer
         self.list_type = buffer[0]
         self.size = int.from_bytes(buffer[1:5], 'big')
+
+        self.data = None
 
         self.payload_size = 1 + 4
 
         # Test which type the list is, then determine payload size based on that
         for tag in TAGS.ALL:
             if tag.id == self.list_type:
-                self.payload_size += (self.size * tag.base_payload)
+                pass
+        
+        print("SET UP DATA FOR LIST TAG")
 
 
 class TAG_Compound:
 
     id = 10
     
-    def __init__(self, chunk_data):
+    def __init__(self, buffer):
     
-        self.dict = {}
-        self.list = []
-        self.buffer_index = 0
+        self.data = {}
+        self.buffer = buffer
 
-        self.payload_size = self.buffer_index
-        
-        #self.type_id = chunk_data[0]
-
-        '''string_length = int.from_bytes(chunk_data[1:3], 'big')
-        if string_length != 0:
-            self.name = chunk_data[3:3+string_length].decode('utf-8')
-        else:
-            self.name = '''
-        
-        self.buffer = chunk_data
+        self.payload_size = 0
         
         self.construct_dict()
     
     def construct_dict(self):
     
         type_id = 10 # Initialize to compound tag, this can be anything but 0
-        string_length = 0
         while type_id != 0:
+            print(len(self.buffer))
             
-            type_id = int.from_bytes(self.buffer[self.buffer_index:self.buffer_index+1], 'big')
-            self.buffer_index += 1
+            type_id = self.buffer[0]
+            self.buffer = self.buffer[1:] # should remove a byte
+            self.payload_size += 1
             if type_id != 0:
-                string_length = int.from_bytes(self.buffer[self.buffer_index:self.buffer_index+2], 'big')
-                self.buffer_index += 2
-            #else:
-                #break
-
+                string_length = int.from_bytes(self.buffer[0:2], 'big')
+                self.buffer = self.buffer[2:]
+                self.payload_size += 2
+            else:
+                string_length = 0
+            
             if string_length != 0:
-                name = self.buffer[self.buffer_index:self.buffer_index+string_length].decode('utf-8')
-                self.buffer_index += string_length
+                name = self.buffer[0:string_length].decode('utf-8')
+                self.buffer = self.buffer[string_length:]
+                self.payload_size += string_length
             else:
                 name = ''
 
             for tag in TAGS.ALL:
                 if tag.id == type_id:
-                    print('here', name, type_id)
-                    self.dict[name] = tag(self.buffer[self.buffer_index:])
-                    #self.list.append([name, tag(self.buffer[self.buffer_index:])])
-                    try:
-                        self.buffer_index += self.dict[name].payload_size # NEED TO UPDATE THIS TO BE THE SIZE USED BY THE TAG
-                    except:
-                        print("Error reading tag")
+                    new_tag = tag(self.buffer)
+                    self.data[name] = new_tag
+                    self.buffer = self.buffer[new_tag.payload_size:]
+                    self.payload_size += new_tag.payload_size
 
 
 class TAG_Int_Array:
     id = 11
     
     def __init__(self, buffer):
-        self.buffer = buffer
         self.size = int.from_bytes(buffer[:4], 'big')
+
+        self.data = None
+
         self.payload_size = 4 + 4*self.size
+
+        print("SET UP DATA FOR INT ARRAY")
 
 
 class TAG_Long_Array:
     id = 12
     
     def __init__(self, buffer):
-        self.buffer = buffer
         self.size = int.from_bytes(buffer[:4], 'big')
+
+        self.data = None
+
         self.payload_size = 4 + 8*self.size
 
 
@@ -232,8 +213,7 @@ if __name__ == '__main__':
     with open('r.0.0.mca', 'rb') as f:
 
         data = f.read()
-        chunk_data = read_chunk_data(0, 0, data)
+        buffer = read_chunk_data(0, 0, data)
         
-        cmpd = TAG_Compound(chunk_data)
-        #pprint.pprint(cmpd.dict['Heightmaps'].dict['OCEAN_FLOOR'])
-        print(chunk_data)
+        cmpd = TAG_Compound(buffer)
+        pprint.pprint(cmpd.data)
